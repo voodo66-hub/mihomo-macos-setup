@@ -1,0 +1,39 @@
+#!/bin/bash
+# 提交前检查：shellcheck + bash 语法
+set -e
+
+FILES=$(git diff --cached --name-only --diff-filter=ACM | grep -E '\.sh$|^scripts/' | grep -v '^config\.yaml' || true)
+
+if [ -z "$FILES" ]; then
+    exit 0
+fi
+
+FAILED=0
+
+if command -v shellcheck > /dev/null 2>&1; then
+    echo "→ shellcheck"
+    for f in $FILES; do
+        if [ -f "$f" ]; then
+            if ! shellcheck -S warning "$f"; then
+                FAILED=1
+            fi
+        fi
+    done
+else
+    echo "→ 未安装 shellcheck，跳过（brew install shellcheck）"
+fi
+
+echo "→ bash -n"
+for f in $FILES; do
+    if [ -f "$f" ] && ! bash -n "$f"; then
+        FAILED=1
+    fi
+done
+
+if [ "$FAILED" != "0" ]; then
+    echo
+    echo "❌ 检查未通过，提交中止"
+    exit 1
+fi
+
+echo "✅ 检查通过"

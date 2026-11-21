@@ -7,7 +7,7 @@ CONF="$HOME/.config/mihomo/config.yaml"
 DIR="$HOME/.config/mihomo"
 
 # 等网络就绪（最多 30 秒）
-for i in $(seq 1 30); do
+for _ in $(seq 1 30); do
     if scutil --nwi 2>/dev/null | grep -qi "reachable"; then
         break
     fi
@@ -25,7 +25,7 @@ MIHOMO_PID=$!
 
 # 等端口监听（最多 20 秒）
 READY=0
-for i in $(seq 1 40); do
+for _ in $(seq 1 40); do
     if nc -z 127.0.0.1 7890 2>/dev/null; then
         READY=1
         break
