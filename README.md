@@ -74,6 +74,27 @@ launchd 调用 `mihomo-boot`，它按顺序做四件事：
 
 `KeepAlive = {SuccessfulExit: false}`，内核崩溃会被自动拉起（实测 kill -9 后约 15 秒恢复）。
 
+## 卸载残留清理
+
+卸载 VPN Super / ProtonVPN / Hiddify 后，用户级数据已清，系统级三项受权限限制：
+
+```bash
+sudo bash cleanup/remove-system-residue.sh   # 只能处理第 1 项
+```
+
+| 项目 | 能否脚本处理 | 说明 |
+|---|---|---|
+| VPN Super.app | ✅ 需 sudo | 归 root:wheel |
+| 系统 VPN 配置 | ❌ 只能 GUI | `networksetup` 无法删 VPN 类型服务 |
+| ProtonVPN 系统扩展 | ❌ 只能 GUI | SIP 开启时 `systemextensionsctl uninstall` 不可用 |
+
+GUI 位置：
+
+```
+系统设置 → 网络 → 选中「VPN Super - OpenVPN」→ 点「−」
+系统设置 → 通用 → 登录项与扩展 → 网络扩展 → 移除 Proton VPN 两项
+```
+
 ## 注意事项
 
 **节点是消耗品。** 48 个节点来自公开聚合源（yoyapai.com 等），我实测筛过：从 10048 个节点 → 7187 去重 → 2109 TCP 可达 → 79 通过内核测速 → 48 真实流量验证。
