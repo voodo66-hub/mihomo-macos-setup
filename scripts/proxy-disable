@@ -1,0 +1,13 @@
+#!/bin/bash
+# 彻底禁用开机自启
+PLIST="$HOME/Library/LaunchAgents/com.user.mihomo.plist"
+
+launchctl unload "$PLIST" 2>/dev/null
+rm -f "$PLIST"
+pkill -f "mihomo -f $HOME/.config/mihomo/config.yaml" 2>/dev/null
+
+networksetup -setwebproxystate "Wi-Fi" off 2>/dev/null
+networksetup -setsecurewebproxystate "Wi-Fi" off 2>/dev/null
+networksetup -setautoproxystate "Wi-Fi" off 2>/dev/null
+
+echo "已彻底禁用：开机自启已移除，代理已停止"

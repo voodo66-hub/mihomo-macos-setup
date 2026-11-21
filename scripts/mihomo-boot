@@ -1,0 +1,48 @@
+#!/bin/bash
+# 开机自启入口：由 launchd 调用
+# 先起内核并等端口就绪，再设置系统代理（避免代理指向未监听端口导致断网）
+
+MIHOMO="$HOME/.local/bin/mihomo"
+CONF="$HOME/.config/mihomo/config.yaml"
+DIR="$HOME/.config/mihomo"
+
+# 等网络就绪（最多 30 秒）
+for i in $(seq 1 30); do
+    if scutil --nwi 2>/dev/null | grep -qi "reachable"; then
+        break
+    fi
+    sleep 1
+done
+
+# 如果已有实例在跑，直接退出（由 launchd KeepAlive 处理）
+if pgrep -f "mihomo -f $CONF" > /dev/null; then
+    echo "已有实例运行，跳过启动"
+    exit 0
+fi
+
+"$MIHOMO" -f "$CONF" -d "$DIR" >> "$DIR/mihomo.log" 2>&1 &
+MIHOMO_PID=$!
+
+# 等端口监听（最多 20 秒）
+READY=0
+for i in $(seq 1 40); do
+    if nc -z 127.0.0.1 7890 2>/dev/null; then
+        READY=1
+        break
+    fi
+    sleep 0.5
+done
+
+if [ "$READY" = "1" ]; then
+    networksetup -setwebproxy "Wi-Fi" 127.0.0.1 7890
+    networksetup -setsecurewebproxy "Wi-Fi" 127.0.0.1 7890
+    networksetup -setproxybypassdomains "Wi-Fi" "*.local" "169.254/16" \
+        "127.0.0.1" "192.168.0.0/16" "10.0.0.0/8" "172.16.0.0/12"
+    networksetup -setautoproxystate "Wi-Fi" off
+    echo "系统代理已设置"
+else
+    echo "内核启动超时，未设置系统代理"
+fi
+
+# 前台等待，让 launchd 监督内核进程
+wait $MIHOMO_PID

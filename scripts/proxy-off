@@ -1,0 +1,15 @@
+#!/bin/bash
+# 关闭代理：停服务 + 关系统代理（重启后仍会自启，彻底禁用见 proxy-disable）
+PLIST="$HOME/Library/LaunchAgents/com.user.mihomo.plist"
+
+if launchctl list 2>/dev/null | grep -q com.user.mihomo; then
+    launchctl unload "$PLIST" 2>/dev/null
+    echo "已停止 launchd 服务"
+fi
+
+pkill -f "mihomo -f $HOME/.config/mihomo/config.yaml" 2>/dev/null && echo "已停止代理进程"
+
+networksetup -setwebproxystate "Wi-Fi" off 2>/dev/null
+networksetup -setsecurewebproxystate "Wi-Fi" off 2>/dev/null
+networksetup -setautoproxystate "Wi-Fi" off 2>/dev/null
+echo "系统代理已关闭（恢复直连）"

@@ -1,0 +1,73 @@
+#!/bin/bash
+# 检查当前配置里有多少节点还能用
+CONF="$HOME/.config/mihomo/config.yaml"
+TMP=/tmp/mihomo-check
+
+if ! pgrep -f "mihomo -f $CONF" > /dev/null; then
+    echo "代理未运行，请先执行 proxy-on"
+    exit 1
+fi
+
+mkdir -p $TMP
+python3 - <<'PYEOF'
+import yaml, json, socket, urllib.request, urllib.parse, time, subprocess
+from concurrent.futures import ThreadPoolExecutor, as_completed
+
+CONF = '__HOME__/.config/mihomo/config.yaml'
+API = 'http://127.0.0.1:9099'
+
+d = yaml.safe_load(open(CONF, encoding='utf-8', errors='ignore').read())
+nodes = d.get('proxies') or []
+print(f'配置共 {len(nodes)} 个节点')
+
+# 起带 API 的临时实例做测速
+cfg = dict(d)
+cfg['mixed-port'] = 17899
+cfg['external-controller'] = '127.0.0.1:9099'
+yaml.safe_dump(cfg, open('/tmp/mihomo-check/probe.yaml', 'w'), allow_unicode=True,
+               sort_keys=False, default_flow_style=False, width=10**9)
+
+p = subprocess.Popen(['__HOME__/.local/bin/mihomo', '-f', '/tmp/mihomo-check/probe.yaml',
+                      '-d', '/tmp/mihomo-check'],
+                     stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+time.sleep(6)
+
+try:
+    api = 'http://127.0.0.1:9099'
+    names = json.loads(urllib.request.urlopen(f'{api}/proxies/' + urllib.parse.quote('🚀 节点选择', safe=''), timeout=8).read())['all']
+except Exception:
+    # 组名可能是别的
+    try:
+        allp = json.loads(urllib.request.urlopen(f'{api}/proxies', timeout=8).read())['proxies']
+        gname = [k for k, v in allp.items() if v.get('type') == 'Selector' and k != 'GLOBAL'][0]
+        names = allp[gname]['all']
+    except Exception as e:
+        print('无法连接内核 API:', e)
+        p.terminate()
+        raise SystemExit(1)
+
+TEST = 'https://www.gstatic.com/generate_204'
+
+
+def test(n):
+    q = f'{api}/proxies/{urllib.parse.quote(n, safe="")}/delay?url={urllib.parse.quote(TEST, safe="")}&timeout=4000'
+    try:
+        r = json.loads(urllib.request.urlopen(q, timeout=8).read())
+        return (n, r.get('delay'))
+    except Exception:
+        return (n, None)
+
+
+ok = []
+with ThreadPoolExecutor(max_workers=25) as ex:
+    for f in as_completed([ex.submit(test, n) for n in names]):
+        nm, dl = f.result()
+        if dl:
+            ok.append((nm, dl))
+
+p.terminate()
+ok.sort(key=lambda x: x[1])
+print(f'可用: {len(ok)}/{len(names)}')
+for nm, dl in ok[:10]:
+    print(f'   {nm[:40]:<42} {dl}ms')
+PYEOF

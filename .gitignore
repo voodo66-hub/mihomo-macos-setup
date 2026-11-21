@@ -1,0 +1,6 @@
+# 敏感与本地状态
+*.log
+cache.db
+geoip.dat
+geosite.dat
+country.mmdb
