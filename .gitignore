@@ -4,3 +4,6 @@ cache.db
 geoip.dat
 geosite.dat
 country.mmdb
+# 真实节点配置含密码，只提交 config.example.yaml
+config.yaml
+.DS_Store

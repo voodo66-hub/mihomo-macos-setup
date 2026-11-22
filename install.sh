@@ -16,15 +16,15 @@ done
 echo "== 2. 安装内核配置 =="
 mkdir -p "$HOME/.config/mihomo"
 if [ ! -f "$HOME/.config/mihomo/config.yaml" ]; then
-    cp "$SRC/config.yaml" "$HOME/.config/mihomo/config.yaml"
-    echo "   config.yaml 已写入"
+    cp "$SRC/config.example.yaml" "$HOME/.config/mihomo/config.yaml"
+    echo "   config.example.yaml → config.yaml（含示例节点，需替换成真实节点才会通）"
 else
     echo "   config.yaml 已存在，跳过（如需覆盖请手动 cp）"
 fi
 
 echo "== 3. 安装开机自启 =="
 mkdir -p "$HOME/Library/LaunchAgents"
-cp "$SRC/launchagents/com.user.mihomo.plist" "$PLIST_DST"
+sed "s|__HOME__|$HOME|g" "$SRC/launchagents/com.user.mihomo.plist.template" > "$PLIST_DST"
 plutil -lint "$PLIST_DST"
 
 # launchctl 按 Label 注册，不受 HOME 隔离。

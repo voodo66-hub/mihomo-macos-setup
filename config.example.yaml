@@ -1,0 +1,102 @@
+# mihomo 配置模板 —— 示例节点，必须换成你自己的可用节点后才会通
+#
+# 用法：复制为 ~/.config/mihomo/config.yaml，把 proxies 里的示例节点替换成真实节点。
+# 规则（rules / geox-url / proxy-groups）可以原样保留：分流逻辑与节点无关。
+#
+# 注意：真实 config.yaml 含节点密码，已被 .gitignore 排除，不要提交进仓库。
+
+mixed-port: 7890
+allow-lan: false
+mode: rule
+log-level: info
+ipv6: false
+proxies:
+- name: 示例-ss-1
+  type: ss
+  server: 203.0.113.10
+  port: 19999
+  cipher: aes-256-gcm
+  password: REPLACE_ME
+  udp: true
+- name: 示例-vmess-2
+  type: vmess
+  server: 203.0.113.11
+  port: 443
+  uuid: 00000000-0000-4000-8000-000000000000
+  alterId: 0
+  cipher: auto
+  tls: true
+  servername: example.com
+  udp: true
+- name: 示例-vless-3
+  type: vless
+  server: 203.0.113.12
+  port: 443
+  uuid: 00000000-0000-4000-8000-000000000000
+  tls: true
+  servername: example.com
+  client-fingerprint: chrome
+  network: ws
+  ws-opts:
+    path: /REPLACE_ME
+  udp: true
+- name: 示例-trojan-4
+  type: trojan
+  server: 203.0.113.13
+  port: 443
+  password: REPLACE_ME
+  sni: example.com
+  skip-cert-verify: false
+  udp: true
+proxy-groups:
+- name: 🚀 节点选择
+  type: select
+  proxies:
+  - ♻️ 自动选择
+  - 示例-ss-1
+  - 示例-vmess-2
+  - 示例-vless-3
+  - 示例-trojan-4
+- name: ♻️ 自动选择
+  type: url-test
+  url: https://www.gstatic.com/generate_204
+  interval: 300
+  tolerance: 150
+  proxies:
+  - 示例-ss-1
+  - 示例-vmess-2
+  - 示例-vless-3
+  - 示例-trojan-4
+rules:
+- IP-CIDR,127.0.0.0/8,DIRECT,no-resolve
+- IP-CIDR,192.168.0.0/16,DIRECT,no-resolve
+- IP-CIDR,10.0.0.0/8,DIRECT,no-resolve
+- IP-CIDR,172.16.0.0/12,DIRECT,no-resolve
+- IP-CIDR,169.254.0.0/16,DIRECT,no-resolve
+- DOMAIN-SUFFIX,local,DIRECT
+- GEOSITE,google,🚀 节点选择
+- GEOSITE,youtube,🚀 节点选择
+- GEOSITE,github,🚀 节点选择
+- GEOSITE,twitter,🚀 节点选择
+- GEOSITE,openai,🚀 节点选择
+- GEOSITE,telegram,🚀 节点选择
+- GEOSITE,netflix,🚀 节点选择
+- GEOSITE,facebook,🚀 节点选择
+- GEOSITE,instagram,🚀 节点选择
+- GEOSITE,cloudflare,🚀 节点选择
+- GEOSITE,reddit,🚀 节点选择
+- GEOSITE,stackexchange,🚀 节点选择
+- GEOSITE,medium,🚀 节点选择
+- GEOSITE,notion,🚀 节点选择
+- GEOSITE,spotify,🚀 节点选择
+- GEOSITE,apple,🚀 节点选择
+- GEOSITE,cn,DIRECT
+- GEOIP,CN,DIRECT
+- MATCH,🚀 节点选择
+geodata-mode: true
+geox-url:
+  geoip: https://github.com/MetaCubeX/meta-rules-dat/releases/download/latest/geoip.dat
+  geosite: https://github.com/MetaCubeX/meta-rules-dat/releases/download/latest/geosite.dat
+  mmdb: https://github.com/MetaCubeX/meta-rules-dat/releases/download/latest/country.mmdb
+geo-auto-update: false
+external-controller: 127.0.0.1:9099

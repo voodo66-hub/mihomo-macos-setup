@@ -1,5 +1,0 @@
-# Removed before this repository was made public.
-# It contained real node credentials (password/uuid) and endpoints.
-# See config.example.yaml for the routing rules template.
-proxies: []
-proxy-groups: []

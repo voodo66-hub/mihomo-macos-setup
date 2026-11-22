@@ -87,7 +87,7 @@ available modes: [ConnectionModeDisplayModel(title: "OpenVPN", ...)]
 
 ```
 PAC 文件: ~/.config/mihomo/proxy.pac
-目录权限: drwx------ __HOME__/.config
+目录权限: drwx------ ~/.config
 现象:    Chrome 到 7890 的连接数 = 0
 ```
 

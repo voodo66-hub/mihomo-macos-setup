@@ -10,10 +10,10 @@ fi
 
 mkdir -p $TMP
 python3 - <<'PYEOF'
-import yaml, json, socket, urllib.request, urllib.parse, time, subprocess
+import os, yaml, json, socket, urllib.request, urllib.parse, time, subprocess
 from concurrent.futures import ThreadPoolExecutor, as_completed
 
-CONF = '__HOME__/.config/mihomo/config.yaml'
+CONF = os.path.expanduser('~/.config/mihomo/config.yaml')
 API = 'http://127.0.0.1:9099'
 
 d = yaml.safe_load(open(CONF, encoding='utf-8', errors='ignore').read())
@@ -27,7 +27,7 @@ cfg['external-controller'] = '127.0.0.1:9099'
 yaml.safe_dump(cfg, open('/tmp/mihomo-check/probe.yaml', 'w'), allow_unicode=True,
                sort_keys=False, default_flow_style=False, width=10**9)
 
-p = subprocess.Popen(['__HOME__/.local/bin/mihomo', '-f', '/tmp/mihomo-check/probe.yaml',
+p = subprocess.Popen([os.path.expanduser('~/.local/bin/mihomo'), '-f', '/tmp/mihomo-check/probe.yaml',
                       '-d', '/tmp/mihomo-check'],
                      stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
 time.sleep(6)

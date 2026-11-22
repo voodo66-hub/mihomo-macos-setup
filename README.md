@@ -44,9 +44,22 @@ proxy-check     检查 48 个节点还剩几个活着
 ~/.local/bin/proxy-off           关
 ~/.local/bin/proxy-disable       彻底禁用
 ~/.local/bin/proxy-check         节点健康检查
-~/.config/mihomo/config.yaml     48 节点 + 25 条规则
-~/Library/LaunchAgents/com.user.mihomo.plist   开机自启
+~/.config/mihomo/config.yaml     节点 + 25 条规则（本仓库只带模板 config.example.yaml）
+~/Library/LaunchAgents/com.user.mihomo.plist   开机自启（由 template 渲染，含本机 HOME）
 ```
+
+## 配置节点
+
+仓库里**不含真实节点**。`config.example.yaml` 是可直接使用的模板：分流规则齐全，节点是 4 个占位示例。
+
+```bash
+cp config.example.yaml ~/.config/mihomo/config.yaml
+# 然后把 proxies: 下的示例节点换成你自己的可用节点（SS / VMess / VLESS / Trojan 均可）
+proxy-on
+```
+
+示例节点的 `password` / `uuid` 是 `REPLACE_ME` 与全零 UUID，**原样启动是不通的**——这是刻意的，
+避免仓库变成一份会跟着 star 流传的节点清单。规则段（`rules` / `geox-url` / `proxy-groups`）与节点无关，可以原样保留。
 
 ## 内核下载
 
@@ -101,7 +114,7 @@ GUI 位置：
 
 它们随时会失效。`proxy-check` 显示大量死亡时，需要重新抓节点。
 
-**不要提交凭证。** `config.yaml` 里每个节点都带 `password`/`uuid`。这是公开免费节点，但仍属于凭证。
+**不要提交凭证。** 真实 `config.yaml` 里每个节点都带 `password`/`uuid`，已被 `.gitignore` 排除在本仓库之外。这是公开免费节点，但仍属于凭证。
 
 **Hiddify 装了但没用。** `/Applications/Hiddify.app` v5.5.5，原生 macOS 版（`DTPlatformName = macosx`），能启动、端口能监听，但订阅导入一直报"意外连接错误"。试过 URL scheme、最简配置、文件导入三种方式都失败。留作备选。
 
