@@ -1,0 +1,122 @@
+#!/bin/bash
+# 实测所有节点的真实下载带宽，按速度排序，可自动切到最快的
+set -uo pipefail
+
+CONF="${MIHOMO_CONFIG:-$HOME/.config/mihomo/config.yaml}"
+API="http://127.0.0.1:9099"
+PORT="${MIHOMO_PORT:-7890}"
+TEST_URL="http://cachefly.cachefly.net/10mb.test"
+AUTO=0
+
+for arg in "$@"; do
+    case "$arg" in
+        --auto|-a) AUTO=1 ;;
+        --help|-h)
+            echo "用法: proxy-fast [--auto]"
+            echo "  无参数   测速并显示排名，不切换"
+            echo "  --auto   测速后自动切到最快的节点"
+            exit 0
+            ;;
+    esac
+done
+
+if ! pgrep -f "mihomo -f $CONF" > /dev/null; then
+    echo "代理未运行，请先执行 proxy-on"
+    exit 1
+fi
+
+if ! curl -s -o /dev/null --max-time 5 "$API/version"; then
+    echo "内核 API 不可达（$API）"
+    echo "需要在配置里启用: external-controller: 127.0.0.1:9099"
+    exit 1
+fi
+
+export API PORT TEST_URL AUTO
+python3 - <<'PYEOF'
+import json, os, subprocess, sys, time, urllib.parse, urllib.request
+
+API = os.environ["API"]
+PORT = os.environ["PORT"]
+URL = os.environ["TEST_URL"]
+AUTO = os.environ.get("AUTO") == "1"
+
+
+def req(path, data=None):
+    r = urllib.request.Request(
+        f"{API}{path}",
+        data=json.dumps(data).encode() if data else None,
+        method="PUT" if data else "GET",
+        headers={"Content-Type": "application/json"},
+    )
+    return urllib.request.urlopen(r, timeout=8).read()
+
+
+proxies = json.loads(req("/proxies"))["proxies"]
+sel = [k for k, v in proxies.items() if v.get("type") == "Selector" and k != "GLOBAL"]
+if not sel:
+    print("找不到选择组")
+    sys.exit(1)
+GROUP = sel[0]
+names = [n for n in proxies[GROUP]["all"] if n not in ("♻️ 自动选择", "DIRECT", "REJECT")]
+print(f"组: {GROUP}  节点: {len(names)}")
+print(f"测速源: {URL}")
+print()
+
+def switch(n):
+    req(f"/proxies/{urllib.parse.quote(GROUP)}", {"name": n})
+
+def bw(timeout=25):
+    tmp = "/tmp/_proxyfast.bin"
+    if os.path.exists(tmp):
+        os.remove(tmp)
+    t0 = time.time()
+    try:
+        subprocess.run(
+            ["curl", "-s", "-x", f"http://127.0.0.1:{PORT}", "-o", tmp,
+             "--max-time", str(timeout), URL],
+            timeout=timeout + 6)
+    except Exception:
+        pass
+    dt = time.time() - t0
+    sz = os.path.getsize(tmp) if os.path.exists(tmp) else 0
+    if os.path.exists(tmp):
+        os.remove(tmp)
+    return (sz / dt / 1024 / 1024 * 8) if dt > 0 else 0.0
+
+results = []
+for i, n in enumerate(names, 1):
+    try:
+        switch(n)
+    except Exception:
+        continue
+    time.sleep(0.2)
+    m = bw()
+    results.append((n, m))
+    print(f"  {i:2}/{len(names)}  {m:6.2f} Mbps  {n[:40]}", flush=True)
+
+if not results:
+    print("所有节点测速失败")
+    sys.exit(1)
+
+results.sort(key=lambda x: -x[1])
+print()
+print("=" * 58)
+print("排名")
+print("=" * 58)
+for n, m in results:
+    flag = "OK " if m >= 3 else "slow" if m >= 1 else "dead"
+    print(f"  [{flag}] {m:7.2f} Mbps  {n[:40]}")
+
+best, best_m = results[0]
+good = sum(1 for _, m in results if m >= 3)
+print()
+print(f"可用(>=3 Mbps): {good}/{len(results)}   最快: {best_m:.2f} Mbps")
+
+if AUTO:
+    switch(best)
+    print(f"已切换到: {best}")
+else:
+    switch(best)
+    print(f"已切换到最快节点: {best}")
+    print("（可用 --auto 跳过此提示）")
+PYEOF

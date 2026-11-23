@@ -7,7 +7,7 @@ PLIST_DST="$HOME/Library/LaunchAgents/com.user.mihomo.plist"
 
 echo "== 1. 安装脚本到 ~/.local/bin =="
 mkdir -p "$HOME/.local/bin"
-for f in proxy-on proxy-off proxy-disable proxy-check mihomo-boot; do
+for f in proxy-on proxy-off proxy-disable proxy-check proxy-fast mihomo-boot; do
     cp "$SRC/scripts/$f" "$HOME/.local/bin/$f"
     chmod 755 "$HOME/.local/bin/$f"
     echo "   $f"

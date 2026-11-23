@@ -32,8 +32,35 @@ mihomo 内核（Clash Meta 兼容）+ 48 个实测可用的免费节点，内核
 proxy-on        开启（同时也是开机自启的入口）
 proxy-off       关闭（停服务 + 关系统代理，但下次开机仍会自启）
 proxy-disable   彻底禁用（移除开机自启）
-proxy-check     检查 48 个节点还剩几个活着
+proxy-check     检查节点还剩几个活着
+proxy-fast      实测所有节点的真实下载带宽，排序后切到最快的
 ```
+
+### proxy-fast
+
+`proxy-check` 只测 TCP 可达性，`proxy-fast` 才测真实带宽。
+
+```
+proxy-fast          测速 + 显示排名 + 切到最快的
+proxy-fast --auto   同上（保留参数形式）
+```
+
+输出示例：
+
+```
+   1/15    7.55 Mbps  🇮🇹IT-202.50.253.72-0256
+   2/15    0.89 Mbps  🇮🇹IT-202.50.253.99-0212
+   ...
+
+  [OK ]    8.94 Mbps  IT-202.50.253.90-0199
+  [slow]    2.52 Mbps  🇮🇹IT-202.50.253.90-0254
+  [dead]    0.00 Mbps  🇳🇱 荷兰 | NLD
+
+可用(>=3 Mbps): 3/15   最快: 8.94 Mbps
+已切换到最快节点: IT-202.50.253.90-0199
+```
+
+需要内核开启 API（`external-controller: 127.0.0.1:9099`）。完整测 15 个节点约需 5-8 分钟。
 
 ## 文件位置
 
@@ -43,7 +70,8 @@ proxy-check     检查 48 个节点还剩几个活着
 ~/.local/bin/proxy-on            开
 ~/.local/bin/proxy-off           关
 ~/.local/bin/proxy-disable       彻底禁用
-~/.local/bin/proxy-check         节点健康检查
+~/.local/bin/proxy-check         节点健康检查（TCP 层面）
+~/.local/bin/proxy-fast          真实带宽测速与自动切换
 ~/.config/mihomo/config.yaml     节点 + 25 条规则（本仓库只带模板 config.example.yaml）
 ~/Library/LaunchAgents/com.user.mihomo.plist   开机自启（由 template 渲染，含本机 HOME）
 ```
@@ -110,9 +138,21 @@ GUI 位置：
 
 ## 注意事项
 
-**节点是消耗品。** 48 个节点来自公开聚合源（yoyapai.com 等），我实测筛过：从 10048 个节点 → 7187 去重 → 2109 TCP 可达 → 79 通过内核测速 → 48 真实流量验证。
+**节点是消耗品。** 节点来自公开聚合源，实测筛过。完整源清单见 [`docs/sources.md`](docs/sources.md)。
 
 它们随时会失效。`proxy-check` 显示大量死亡时，需要重新抓节点。
+
+**免费节点的带宽会剧烈波动。** 同一节点连续测得：
+
+```
+第1次:  8.38 Mbps
+第2次:  1.95 Mbps
+第3次:  0.44 Mbps
+```
+
+这是免费节点按需分配带宽的结果，任何配置策略都消除不了。觉得慢就跑一次 `proxy-fast` 换节点。
+
+**mihomo 的 url-test 不测带宽。** 它只测首字节延迟，即使配 10MB 文件也不下载完整内容。所以会出现「延迟 497ms 被选中，实际带宽 0.04 Mbps」。想按带宽选只能用 `proxy-fast`。
 
 **不要提交凭证。** 真实 `config.yaml` 里每个节点都带 `password`/`uuid`，已被 `.gitignore` 排除在本仓库之外。这是公开免费节点，但仍属于凭证。
 
@@ -120,4 +160,27 @@ GUI 位置：
 
 ## 排查记录
 
-`docs/` 下是当时的诊断证据。
+- [`docs/diagnosis.md`](docs/diagnosis.md) —— VPN Super 为什么在 Mac 上用不了，完整诊断过程
+- [`docs/sources.md`](docs/sources.md) —— 免费节点源清单、镜像速度对比、测速踩过的坑
+
+## 换节点时怎么操作
+
+1. 从 `docs/sources.md` 挑一个源，下载 YAML
+2. 把其中 `proxies:` 段替换到 `~/.config/mihomo/config.yaml`
+3. 重启服务：
+
+```bash
+launchctl unload ~/Library/LaunchAgents/com.user.mihomo.plist
+launchctl load  ~/Library/LaunchAgents/com.user.mihomo.plist
+```
+
+4. 跑 `proxy-fast` 实测挑出快的
+
+## 觉得慢时的排查顺序
+
+```
+1. proxy-check     节点还活着吗？大量 dead 就该换源了
+2. proxy-fast      活着的节点哪个带宽大？切过去
+3. 换源            只有 2-3 个能用时，从 docs/sources.md 换一批
+4. 还是慢          免费节点就这水平，考虑付费订阅
+```
