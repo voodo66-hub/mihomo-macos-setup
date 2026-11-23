@@ -26,7 +26,7 @@ if ! pgrep -f "mihomo -f $CONF" > /dev/null; then
 fi
 
 if ! curl -s -o /dev/null --max-time 5 "$API/version"; then
-    echo "内核 API 不可达（$API）"
+    echo "内核 API 不可达（${API}）"
     echo "需要在配置里启用: external-controller: 127.0.0.1:9099"
     exit 1
 fi
